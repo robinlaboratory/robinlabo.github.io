@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>タイピング練習アプリ</title>
+<style>
+  /* 全体のスタイル設定 */
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f2f5;
+    color: #333;
+    line-height: 1.6;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  /* コンテナのスタイル */
+  .container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* ヘッダー情報（問題数、タイマー） */
+  .header-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #555;
+  }
+
+  /* 課題表示エリア */
+  #challenge-text {
+    font-size: 2.8em; /* フォントサイズを大きく */
+    font-weight: bold;
+    margin-bottom: 30px;
+    color: #007bff; /* メインカラー */
+    word-break: break-all; /* 長い単語でも改行 */
+    min-height: 1.5em; /* コンテンツがないときに崩れないように */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 入力フィールド */
+  #user-input {
+    width: calc(100% - 20px);
+    padding: 15px;
+    font-size: 1.5em;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    appearance: none; /* iOS Safariのデフォルトスタイルをリセット */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+
+  #user-input:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+  }
+
+  /* メッセージ表示エリア */
+  #message {
+    font-size: 1.2em;
+    min-height: 1.5em;
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+
+  .message-correct {
+    color: #28a745; /* 正解時の色 */
+  }
+
+  .message-incorrect {
+    color: #dc3545; /* 不正解時の色 */
+  }
+
+  /* 難易度選択ボタン */
+  .difficulty-selection {
+    margin-top: 20px;
+  }
+
+  .difficulty-selection button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    margin: 0 10px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    min-width: 120px; /* ボタンの幅を統一 */
+  }
+
+  .difficulty-selection button:hover {
+    background-color: #0056b3;
+  }
+
+  .difficulty-selection button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+  }
+
+  /* 難易度選択画面 */
+  #difficulty-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  #difficulty-screen h2 {
+    font-size: 2em;
+    color: #333;
+    margin-bottom: 30px;
+  }
+
+  /* ゲーム画面 */
+  #game-screen {
+    display: none; /* 初期状態では非表示 */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* リザルト画面 */
+  #result-screen {
+    display: none; /* 初期状態では非表示 */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  #result-screen h2 {
+    font-size: 2.2em;
+    color: #007bff;
+    margin-bottom: 20px;
+  }
+
+  #result-screen p {
+    font-size: 1.5em;
+    margin-bottom: 30px;
+  }
+
+  #result-screen button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  #result-screen button:hover {
+    background-color: #218838;
+  }
+
+  #result-screen button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25);
+  }
+
+  /* サウンドの視覚的フィードバック */
+  .sound-feedback {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4em;
+    font-weight: bold;
+    color: white;
+    padding: 20px 40px;
+    border-radius: 15px;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    pointer-events: none; /* クリックイベントを妨げないように */
+    z-index: 1000;
+  }
+
+  .sound-feedback.active {
+    opacity: 1;
+  }
+
+  .sound-feedback.correct {
+    background-color: rgba(40, 167, 69, 0.9);
+  }
+
+  .sound-feedback.incorrect {
+    background-color: rgba(220, 53, 69, 0.9);
+  }
+
+  /* 小さい画面での調整 */
+  @media (max-width: 600px) {
+    body {
+      padding: 10px;
+    }
+    .container {
+      padding: 20px;
+    }
+    #challenge-text {
+      font-size: 2em;
+    }
+    #user-input {
+      font-size: 1.2em;
+      padding: 12px;
+    }
+    .difficulty-selection button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 1em;
+      min-width: unset;
+    }
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- 難易度選択画面 -->
+    <div id="difficulty-screen" role="region" aria-label="難易度選択">
+      <h2>タイピング練習アプリ</h2>
+      <p>難易度を選択してください。</p>
+      <div class="difficulty-selection">
+        <button id="easy-button" aria-label="初級">初級</button>
+        <button id="medium-button" aria-label="中級">中級</button>
+        <button id="hard-button" aria-label="上級">上級</button>
+      </div>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="game-screen" role="region" aria-label="タイピング練習ゲーム">
+      <div class="header-info">
+        <span id="question-count" aria-live="polite" aria-atomic="true">問題数: 0/10</span>
+        <span id="timer" aria-live="polite" aria-atomic="true">タイム: 0.00</span>
+      </div>
+
+      <div id="challenge-text" aria-live="polite" aria-atomic="true" aria-label="課題テキスト"></div>
+      <input type="text" id="user-input" aria-label="ここに入力してください" placeholder="ここに入力してください">
+      <div id="message" aria-live="polite" aria-atomic="true"></div>
+    </div>
+
+    <!-- リザルト画面 -->
+    <div id="result-screen" role="region" aria-label="結果画面">
+      <h2>ゲームクリア！</h2>
+      <p id="final-time"></p>
+      <button id="restart-button" aria-label="もう一度プレイする">もう一度プレイする</button>
+    </div>
+  </div>
+
+  <!-- サウンド要素 -->
+  <audio id="correct-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-alert-sound-1122.mp3" preload="auto" aria-hidden="true"></audio>
+  <audio id="incorrect-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-bass-buzzer-948.mp3" preload="auto" aria-hidden="true"></audio>
+
+  <!-- サウンドの視覚的フィードバック -->
+  <div id="sound-feedback-display" class="sound-feedback" aria-hidden="true"></div>
+
+<script>
+  // グローバルな変数定義
+  const easyChallenges = ['あい', 'ねこ', 'たいよう', 'きりん', 'うさぎ', 'みかん', 'りんご', 'くるま', 'ふく', 'さかな'];
+  const mediumChallenges = ['apple', 'Google', 'AI2025', 'TypeScript', 'JavaScript', 'WebDev', 'Frontend', 'Backend', 'Database', 'Cloud'];
+  const hardChallenges = ['人工知能', '日本の首都は東京です', 'プログラミング学習', 'アクセシビリティ対応', 'インターネット', 'スマートフォンの普及', 'デジタル化推進', '情報技術革新', '未来の社会', '新しい体験を創造'];
+
+  let currentChallenges = [];
+  let currentQuestionIndex = 0;
+  let startTime;
+  let timerInterval;
+  let difficulty = ''; // 'easy', 'medium', 'hard'
+
+  // DOM要素の取得
+  const difficultyScreen = document.getElementById('difficulty-screen');
+  const gameScreen = document.getElementById('game-screen');
+  const resultScreen = document.getElementById('result-screen');
+
+  const easyButton = document.getElementById('easy-button');
+  const mediumButton = document.getElementById('medium-button');
+  const hardButton = document.getElementById('hard-button');
+  const restartButton = document.getElementById('restart-button');
+
+  const challengeText = document.getElementById('challenge-text');
+  const userInput = document.getElementById('user-input');
+  const messageDisplay = document.getElementById('message');
+  const questionCountDisplay = document.getElementById('question-count');
+  const timerDisplay = document.getElementById('timer');
+  const finalTimeDisplay = document.getElementById('final-time');
+
+  const correctSound = document.getElementById('correct-sound');
+  const incorrectSound = document.getElementById('incorrect-sound');
+  const soundFeedbackDisplay = document.getElementById('sound-feedback-display');
+
+  /**
+   * サウンドを再生し、視覚的なフィードバックを表示するモジュール
+   * @param {HTMLAudioElement} sound - 再生するオーディオ要素
+   * @param {string} feedbackClass - フィードバック表示に追加するクラス名 ('correct' or 'incorrect')
+   * @param {string} text - 視覚的なフィードバックとして表示するテキスト
+   */
+  const SoundFeedback = (() => {
+    let timeoutId = null;
+
+    const play = (sound, feedbackClass, text) => {
+      // 以前のフィードバックがあればリセット
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        soundFeedbackDisplay.classList.remove('active', 'correct', 'incorrect');
+        soundFeedbackDisplay.textContent = '';
+      }
+
+      // サウンド再生
+      sound.currentTime = 0; // 最初から再生
+      sound.play().catch(e => console.error("Sound playback failed:", e));
+
+      // 視覚的フィードバック表示
+      soundFeedbackDisplay.textContent = text;
+      soundFeedbackDisplay.classList.add('active', feedbackClass);
+      soundFeedbackDisplay.setAttribute('aria-hidden', 'false'); // VoiceOverユーザー以外にも情報を提供
+
+      // 一定時間後に非表示にする
+      timeoutId = setTimeout(() => {
+        soundFeedbackDisplay.classList.remove('active', 'correct', 'incorrect');
+        soundFeedbackDisplay.textContent = '';
+        soundFeedbackDisplay.setAttribute('aria-hidden', 'true');
+        timeoutId = null;
+      }, 700); // 0.7秒後に消える
+    };
+
+    return { play };
+  })();
+
+  /**
+   * UI画面の切り替えを管理するモジュール
+   */
+  const ScreenManager = (() => {
+    const showScreen = (screenElement) => {
+      // 全ての画面を非表示にする
+      [difficultyScreen, gameScreen, resultScreen].forEach(screen => {
+        screen.style.display = 'none';
+        screen.setAttribute('aria-hidden', 'true');
+      });
+      // 指定された画面を表示する
+      screenElement.style.display = 'flex';
+      screenElement.setAttribute('aria-hidden', 'false');
+      // 表示された画面の最初のインタラクティブ要素にフォーカスを当てる（アクセシビリティのため）
+      const firstFocusable = screenElement.querySelector('button, input, [tabindex="0"]');
+      if (firstFocusable) {
+        firstFocusable.focus();
+      }
+    };
+
+    return { showScreen };
+  })();
+
+  /**
+   * タイマー機能を管理するモジュール
+   */
+  const Timer = (() => {
+    let intervalId = null;
+    let seconds = 0;
+
+    const start = () => {
+      seconds = 0;
+      startTime = performance.now(); // より正確なタイム計測
+      intervalId = setInterval(update, 10); // 10ミリ秒ごとに更新
+      timerDisplay.setAttribute('aria-live', 'off'); // タイマーの読み上げは頻繁すぎると煩わしいのでoffにする
+    };
+
+    const update = () => {
+      const elapsedTime = performance.now() - startTime;
+      seconds = elapsedTime / 1000;
+      timerDisplay.textContent = `タイム: ${seconds.toFixed(2)}`;
+    };
+
+    const stop = () => {
+      clearInterval(intervalId);
+      intervalId = null;
+      timerDisplay.setAttribute('aria-live', 'polite'); // 最終結果は読み上げる可能性があるのでpoliteに戻す
+      return seconds;
+    };
+
+    const reset = () => {
+      stop();
+      seconds = 0;
+      timerDisplay.textContent = 'タイム: 0.00';
+    };
+
+    return { start, stop, reset };
+  })();
+
+  /**
+   * ゲームの進行を管理するモジュール
+   */
+  const Game = (() => {
+    const initializeGame = (selectedDifficulty) => {
+      difficulty = selectedDifficulty;
+      currentQuestionIndex = 0;
+      Timer.reset();
+      messageDisplay.textContent = ''; // メッセージをクリア
+
+      // 難易度に応じて課題を設定
+      switch (difficulty) {
+        case 'easy':
+          currentChallenges = [...easyChallenges].sort(() => 0.5 - Math.random()); // シャッフル
+          break;
+        case 'medium':
+          currentChallenges = [...mediumChallenges].sort(() => 0.5 - Math.random());
+          break;
+        case 'hard':
+          currentChallenges = [...hardChallenges].sort(() => 0.5 - Math.random());
+          break;
+        default:
+          currentChallenges = [...easyChallenges].sort(() => 0.5 - Math.random());
+      }
+
+      // 最初の問題を表示
+      displayNextQuestion();
+      userInput.value = '';
+      userInput.focus(); // 入力フィールドにフォーカスを当てる
+      Timer.start(); // タイマー開始
+      ScreenManager.showScreen(gameScreen); // ゲーム画面に切り替え
+    };
+
+    const displayNextQuestion = () => {
+      if (currentQuestionIndex < 10) {
+        challengeText.textContent = currentChallenges[currentQuestionIndex];
+        questionCountDisplay.textContent = `問題数: ${currentQuestionIndex + 1}/10`;
+        messageDisplay.textContent = ''; // メッセージをクリア
+        userInput.value = ''; // 入力フィールドをクリア
+        userInput.focus(); // 入力フィールドにフォーカスを当てる
+        challengeText.setAttribute('aria-label', `次の課題: ${currentChallenges[currentQuestionIndex]}`); // VoiceOverで課題を読み上げる
+      } else {
+        endGame();
+      }
+    };
+
+    const checkInput = () => {
+      const inputValue = userInput.value.trim();
+      const currentChallenge = challengeText.textContent;
+
+      if (inputValue === currentChallenge) {
+        // 正解
+        SoundFeedback.play(correctSound, 'correct', 'ピンポン！');
+        messageDisplay.textContent = '正解！次の問題に進みます。';
+        messageDisplay.classList.remove('message-incorrect');
+        messageDisplay.classList.add('message-correct');
+        currentQuestionIndex++;
+        setTimeout(displayNextQuestion, 800); // 0.8秒後に次の問題へ
+      } else {
+        // 不正解
+        SoundFeedback.play(incorrectSound, 'incorrect', 'ブブー！');
+        messageDisplay.textContent = '不正解。もう一度入力してください。';
+        messageDisplay.classList.remove('message-correct');
+        messageDisplay.classList.add('message-incorrect');
+        userInput.value = ''; // 入力フィールドをクリア
+        userInput.focus(); // 入力フィールドにフォーカスを戻す
+      }
+    };
+
+    const endGame = () => {
+      const finalTime = Timer.stop();
+      finalTimeDisplay.textContent = `あなたのクリアタイムは ${finalTime.toFixed(2)} 秒でした！`;
+      ScreenManager.showScreen(resultScreen); // リザルト画面に切り替え
+    };
+
+    return { initializeGame, checkInput };
+  })();
+
+  // イベントリスナーの設定
+
+  // 難易度選択ボタン
+  easyButton.addEventListener('click', () => Game.initializeGame('easy'));
+  mediumButton.addEventListener('click', () => Game.initializeGame('medium'));
+  hardButton.addEventListener('click', () => Game.initializeGame('hard'));
+
+  // 入力フィールドでのエンターキー（改行キー）押下イベント
+  userInput.addEventListener('keypress', (event) => {
+    // iPhoneのスクリーンキーボードでは、改行キーはkeyCode 13 (Enter)
+    if (event.key === 'Enter') {
+      event.preventDefault(); // 改行のデフォルト動作をキャンセル
+      Game.checkInput();
+    }
+  });
+
+  // リスタートボタン
+  restartButton.addEventListener('click', () => {
+    ScreenManager.showScreen(difficultyScreen);
+  });
+
+  // アプリ起動時の初期表示
+  ScreenManager.showScreen(difficultyScreen);
+</script>
+</body>
+</html>
